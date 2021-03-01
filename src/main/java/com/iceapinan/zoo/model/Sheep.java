@@ -1,4 +1,4 @@
-package com.iceapinan.zoo;
+package com.iceapinan.zoo.model;
 
 public class Sheep extends Animal {
 
@@ -8,7 +8,7 @@ public class Sheep extends Animal {
         this.type = "Herbivore";
     }
     @Override
-    public void say() {
-        System.out.println("Baa Baa");
+    public String say() {
+        return "Baa Baa";
     }
 }
