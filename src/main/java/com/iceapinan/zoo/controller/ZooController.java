@@ -6,66 +6,67 @@ import com.iceapinan.zoo.service.Database;
 
 import java.util.*;
 import java.util.stream.Collectors;
+
 public class ZooController {
+    private Zoo zoo;
 
-    public Zoo zoo;
+    public ZooController(Database db) {
+        generateZoo(db);
+    }
 
-    // Constructor for random zoo
-    public ZooController(){}
+    public void generateZoo(Database db) {
+        List<Cage> newCages = generateCages();
+        persistCages(newCages, db);
+        zoo = new Zoo(newCages, newCages.size());
+    }
 
-    public void generateZoo (Database db) {
-        int min = 2;
-        int max = 5;
+    public void recreateZoo(Database db) {
+        db.deleteAllCages();
+        generateZoo(db);
+    }
+
+    private void persistCages(List<Cage> cages, Database db) {
+        cages.forEach(db::updateCage);
+    }
+
+    private List<Cage> generateCages() {
+        int min = 2, max = 5;
         int numberOfCages = new Random().nextInt((max - min) + 1) + min;
         List<Cage> newCages = new ArrayList<>();
         for (int i = 0; i < numberOfCages; i++) {
             newCages.add(new Cage(true));
         }
-        persist(newCages,db);
-        zoo = new Zoo(newCages, newCages.size());
+        return newCages;
     }
 
-    public void recreateZoo (Database db) {
-       db.deleteAllCages();
-       generateZoo(db);
-    }
-
-    void persist(List<Cage> cages, Database db) {
-        for (Cage cage: cages) {
-            db.updateCage(cage);
-        }
+    private Integer countAnimalsByType(String type) {
+        return zoo.cages
+                .stream()
+                .filter(cage -> Optional.ofNullable(cage.animal).map(a -> a.type.equals(type)).orElse(false))
+                .mapToInt(i -> 1)
+                .sum();
     }
 
     public Integer countCarnivores() {
-        return zoo.cages
-                .stream()
-                .filter((cage) -> cage.animal != null && cage.animal.type.equals("Carnivore"))
-                .mapToInt(i -> 1)
-                .sum();
+        return countAnimalsByType("Carnivore");
     }
 
     public Integer countHerbivores() {
-        return zoo.cages
-                .stream()
-                .filter((cage) -> cage.animal != null && cage.animal.type.equals("Herbivore"))
-                .mapToInt(i -> 1)
-                .sum();
+        return countAnimalsByType("Herbivore");
     }
 
     public Zoo getZoo() {
         return zoo;
     }
 
-
     public List<Cage> getCages() {
         return zoo.cages;
     }
 
-
     public List<String> getCagesToDisplay() {
         return zoo.cages
                 .stream()
-                .map((cage) -> (cage.animal != null) ? String.valueOf(cage.animal.name) : "Empty!")
+                .map(cage -> Optional.ofNullable(cage.animal).map(a -> a.name).orElse("Empty!"))
                 .collect(Collectors.toList());
     }
 
@@ -73,36 +74,32 @@ public class ZooController {
         return zoo.numberOfCages;
     }
 
-    public HashSet<String> getUnique() {
-        HashSet<String> uniqueAnimalSet = new HashSet<>();
-        for (Cage cage : zoo.cages) {
-            if (cage.animal != null)
-                uniqueAnimalSet.add(cage.animal.family);
-        }
-        System.out.println(uniqueAnimalSet);
-        return uniqueAnimalSet;
+    public Set<String> getUniqueAnimalFamilies() {
+        return zoo.cages
+                .stream()
+                .filter(cage -> cage.animal != null)
+                .map(cage -> cage.animal.family)
+                .collect(Collectors.toSet());
     }
 
-    public ArrayList<String> walk() {
-        ArrayList<String> walkList = new ArrayList<>();
-
+    public List<String> walk() {
+        List<String> walkList = new ArrayList<>();
         walkList.add("Welcome to our zoo!");
         walkList.add("There are " + zoo.cages.size() + " cages in our zoo");
         walkList.add("---------------");
-        ListIterator<Cage> it = zoo.cages.listIterator();
-        while (it.hasNext()) {
-            try {
-                walkList.add((it.nextIndex() + 1) + ".");
-                Cage cage = it.next();
-                walkList.addAll(cage.animal.getInfo());
-                walkList.add(cage.animal.say());
-                walkList.add("---------------");
-            } catch (NullPointerException e) {
-                walkList.add("This cage is empty.");
-                walkList.add("---------------");
-            }
-        }
 
+        for (ListIterator<Cage> it = zoo.cages.listIterator(); it.hasNext(); ) {
+            walkList.add((it.nextIndex() + 1) + ".");
+            Cage cage = it.next();
+            Optional.ofNullable(cage.animal).ifPresentOrElse(
+                    animal -> {
+                        walkList.addAll(animal.getInfo());
+                        walkList.add(animal.say());
+                    },
+                    () -> walkList.add("This cage is empty.")
+            );
+            walkList.add("---------------");
+        }
         return walkList;
     }
 
@@ -110,9 +107,8 @@ public class ZooController {
         Cage newCage = new Cage(false);
         zoo.cages.add(newCage);
         db.updateCage(newCage);
-        System.out.println("Successfully added a new cage!");
+        // Logging should be here: Successfully added a new cage
     }
-
 
     public void setZoo(Zoo readObject) {
         this.zoo = readObject;
