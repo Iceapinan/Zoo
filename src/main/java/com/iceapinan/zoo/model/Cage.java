@@ -1,7 +1,5 @@
 package com.iceapinan.zoo.model;
 
-import com.iceapinan.zoo.service.Database;
-
 import javax.persistence.*;
 import java.util.Random;
 
@@ -9,23 +7,28 @@ import java.util.Random;
 public class Cage {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    public Long id;
+    private Long id;
 
     @ManyToOne(cascade = {CascadeType.ALL})
-    public Animal animal;
+    private Animal animal;
 
     @Column(nullable = false)
-    public int numberOfAnimalInside;
+    private int numberOfAnimalInside;
 
     public Cage() {}
 
     public Cage(Boolean shouldRandom) {
         if (shouldRandom) {
-            Animal[] animals = {new Sheep(), new Tiger(), new Elephant(), new Horse(), new Giraffe()};
-            int rand = new Random().nextInt(animals.length);
-            numberOfAnimalInside = new Random().nextBoolean() ? 0 : 1;
-            if (numberOfAnimalInside == 1)
-                this.animal = animals[rand];
+            populateRandomAnimal();
+        }
+    }
+
+    private void populateRandomAnimal() {
+        Animal[] animals = {new Sheep(), new Tiger(), new Elephant(), new Horse(), new Giraffe()};
+        int rand = new Random().nextInt(animals.length);
+        numberOfAnimalInside = new Random().nextBoolean() ? 0 : 1;
+        if (numberOfAnimalInside == 1) {
+            this.animal = animals[rand];
         }
     }
 
@@ -34,12 +37,37 @@ public class Cage {
         this.animal = animal;
         this.numberOfAnimalInside = numberOfAnimalInside;
     }
-    public void putAnimalToCage(Animal animal, Database db) throws Exception
-    {
-        if (this.animal != null && this.numberOfAnimalInside != 0) throw new Exception("This cage is not empty");
+
+    public void putAnimalToCage(Animal animal) throws Exception {
+        if (this.animal != null && this.numberOfAnimalInside != 0) {
+            throw new Exception("This cage is not empty");
+        }
         this.animal = animal;
         this.numberOfAnimalInside = 1;
-        System.out.println(this.id);
-        db.editCage(this);
+        // Logging should be here to output this.id
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Animal getAnimal() {
+        return animal;
+    }
+
+    public void setAnimal(Animal animal) {
+        this.animal = animal;
+    }
+
+    public int getNumberOfAnimalInside() {
+        return numberOfAnimalInside;
+    }
+
+    public void setNumberOfAnimalInside(int numberOfAnimalInside) {
+        this.numberOfAnimalInside = numberOfAnimalInside;
     }
 }
