@@ -1,82 +1,75 @@
 package com.iceapinan.zoo.service;
+
 import com.iceapinan.zoo.model.Cage;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class Database {
 
-    protected SessionFactory sessionFactory = null;
+    protected SessionFactory sessionFactory;
 
     public Database() {
         Configuration cfg = new Configuration();
-        cfg.addAnnotatedClass(com.iceapinan.zoo.model.Cage.class);
+        cfg.addAnnotatedClass(Cage.class);
         cfg.addAnnotatedClass(com.iceapinan.zoo.model.Animal.class);
         sessionFactory = cfg.configure("hibernate.cfg.xml").buildSessionFactory();
+    }
 
+    private void executeWithSession(Consumer<Session> consumer) {
+        try (Session session = sessionFactory.openSession()) {
+            session.beginTransaction();
+            consumer.accept(session);
+            session.getTransaction().commit();
+        }
     }
 
     // CRUD Operations
-
     public void createCage(Cage cage) {
         updateCage(cage);
     }
 
     public void updateCage(Cage cage) {
-        Session session = sessionFactory.openSession();
-        session.beginTransaction();
-        session.save(cage);
-        session.getTransaction().commit();
-        session.close();
+        executeWithSession(session -> session.save(cage));
     }
 
     public void editCage(Cage cage) {
-        Session session = sessionFactory.openSession();
-        session.beginTransaction();
-        session.update(cage);
-        session.getTransaction().commit();
-        session.close();
+        executeWithSession(session -> session.update(cage));
     }
 
     public void deleteCage(Cage cage) {
-        Session session = sessionFactory.openSession();
-        session.beginTransaction();
-        session.delete(cage) ;
-        session.getTransaction().commit();
-        session.close();
+        executeWithSession(session -> session.delete(cage));
     }
 
     public Cage getCage(Long id) {
-        Session session = sessionFactory.openSession();
-        session.beginTransaction();
-        Cage cage = session.find(Cage.class,  id);
-        session.getTransaction().commit();
-        session.close();
-        return cage;
+        try (Session session = sessionFactory.openSession()) {
+            session.beginTransaction();
+            Cage cage = session.find(Cage.class, id);
+            session.getTransaction().commit();
+            return cage;
+        }
     }
 
     public List<Cage> listAllCages() {
-        Session session = sessionFactory.openSession();
-        session.beginTransaction();
-        List<Cage> cages = (List<Cage>) session.createQuery( "from Cage" ).list();
-        session.getTransaction().commit();
-        session.close();
-        return cages;
+        try (Session session = sessionFactory.openSession()) {
+            session.beginTransaction();
+            List<Cage> cages = session.createQuery("from Cage", Cage.class).list();
+            session.getTransaction().commit();
+            return cages;
+        }
     }
 
     public List<Cage> deleteAllCages() {
-        Session session = sessionFactory.openSession();
-        session.beginTransaction();
-        List<Cage> cages = (List<Cage>) session.createQuery( "from Cage" ).list();
-        for (Cage cage: cages) {
-            session.delete(cage) ;
+        try (Session session = sessionFactory.openSession()) {
+            session.beginTransaction();
+            List<Cage> cages = session.createQuery("from Cage", Cage.class).list();
+            for (Cage cage : cages) {
+                session.delete(cage);
+            }
+            session.getTransaction().commit();
+            return cages;
         }
-        session.getTransaction().commit();
-        session.close();
-        return cages;
     }
-
-
-
 }
